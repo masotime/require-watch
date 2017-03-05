@@ -1,5 +1,7 @@
 # require-watch
 
+[![npm downloads][downloads-image]][downloads-url] [![Build Status][travis-image]][travis-url] [![Dependency Status][daviddm-image]][daviddm-url] [![Coverage Status][coverage-image]][coverage-url]
+
 Require watch wraps around Node's module loader and watches files as they are loaded. If a change is detected on a watched module, then that module, along with all its parents, are automatically flushed from the require cache.
 
 This was primarily motivated in enabling hot reloading for express routes. See below under [Express example](#express-example)
@@ -76,7 +78,7 @@ import { Router } from 'express';
 const router = Router();
 
 router.get('/', (req, res, next) => {
-	// some code you want dynamic	
+	// some code you want dynamic
 });
 
 export default router;
@@ -97,3 +99,12 @@ app.listen(8080);
 ```
 
 What happens is that every WEB request causes a fresh REQUIRE request. If you edit `./router.js`, `require-watch` will invalidate the cache, forcing a reload of the module.
+
+[downloads-image]: https://img.shields.io/npm/dm/require-watch.svg?style=flat-square
+[downloads-url]: https://www.npmjs.com/package/require-watch
+[travis-image]: https://travis-ci.org/masotime/require-watch.svg?branch=master
+[travis-url]: https://travis-ci.org/masotime/require-watch
+[daviddm-image]: https://david-dm.org/masotime/require-watch.svg?theme=shields.io
+[daviddm-url]: https://david-dm.org/masotime/require-watch
+[coverage-image]: https://coveralls.io/repos/github/masotime/require-watch/badge.svg?branch=master
+[coverage-url]: https://coveralls.io/github/masotime/require-watch?branch=master
