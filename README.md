@@ -31,7 +31,7 @@ import sayHello from 'lib/hello';
 
 initWatcher('lib/hello');
 
-setInterval(sayHello, 1000);
+setInterval(sayHello, 1000); // this syntax won't be hot reloaded
 ```
 
 ### `lib/sayHello.js`
@@ -40,12 +40,12 @@ setInterval(sayHello, 1000);
 export default function() { console.log('hello'); }
 ```
 
-If you were to edit `lib/sayHello.js`, there would be no effect. Instead, you need to introduce a require statement in the calling function:
+If you were to edit `lib/sayHello.js`, there would be no effect. **Instead, you need to introduce a require statement in the calling function:**
 
 ### `index.js`
 
 ```
-setInterval(() => require('lib/sayHello')(), 1000);
+setInterval(() => require('lib/sayHello')(), 1000); // this syntax enables hot reloading
 ```
 
 This is necessary because this module only flushes the require cache - any existing code loaded in memory remains in memory if it is not re-required. **There is no way around this limitation.**
@@ -91,7 +91,7 @@ import initWatcher from 'require-watch'; // use the module
 const app = express();
 
 initWatcher('./router'); // watch this file
-app.get('/', (req, res, next) => require('./router')(req, res, next)); // force reloading
+app.use('/', (req, res, next) => require('./router')(req, res, next)); // force reloading
 
 app.listen(8080);
 ```
