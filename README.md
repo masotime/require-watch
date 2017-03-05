@@ -2,7 +2,7 @@
 
 Require watch wraps around Node's module loader and watches files as they are loaded. If a change is detected on a watched module, then that module, along with all its parents, are automatically flushed from the require cache.
 
-This was primarily motivated in enabling hot reloading for express routes. See below under "Express example"
+This was primarily motivated in enabling hot reloading for express routes. See below under [Express example](#express-example)
 
 Example usage:
 
@@ -16,8 +16,8 @@ After this, any changes in `lib/some-root` will automatically flush the require 
 
 ## Notes
 
-* You should require and use initWatcher as early as possible in your application, so that it can properly wrap `Module._load` with its watching mechanisms
-* For verbose output of require_watch, set NODE_DEBUG=require-watch
+* You should require and use `initWatcher` as early as possible in your application, so that it can properly wrap `Module._load` with its watching mechanisms
+* For verbose output of `require_watch`, set `NODE_DEBUG=require-watch`
 
 ## Limitations
 
