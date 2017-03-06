@@ -9,17 +9,17 @@ This was primarily motivated in enabling hot reloading for express routes. See b
 Example usage:
 
 ```
-import initWatcher from 'require-watch';
+import watch from 'require-watch';
 
-initWatcher('lib/some-root');
+watch(require.resolve('lib/some-root'));
 ```
 
-After this, any changes in `lib/some-root` will automatically flush the require cache. Note that flushing the require cache still requires code that manually requires the module again.
+After this, any changes in `lib/some-root` will automatically flush the require cache. Note that flushing the require cache **still requires code that manually requires the module again**.
 
 ## Notes
 
-* You should require and use `initWatcher` as early as possible in your application, so that it can properly wrap `Module._load` with its watching mechanisms
-* For verbose output of `require_watch`, set `NODE_DEBUG=require-watch`
+* You should require and use `require-watch` as early as possible in your application, so that it can properly wrap `Module._load` with its watching mechanisms
+* For verbose output of `require-watch`, set `NODE_DEBUG=require-watch`
 
 ## Limitations
 
@@ -28,10 +28,10 @@ Although the module is flushed from the require cache, there is no guarantee tha
 ### `index.js`
 
 ```
-import initWatcher from 'require-watch';
+import watch from 'require-watch';
 import sayHello from 'lib/hello';
 
-initWatcher('lib/hello');
+watch(require.resolve('lib/hello'));
 
 setInterval(sayHello, 1000); // this syntax won't be hot reloaded
 ```
@@ -88,11 +88,11 @@ Then update your app entry like this:
 
 ```
 import express from 'express';
-import initWatcher from 'require-watch'; // use the module
+import watch from 'require-watch'; // use the module
 
 const app = express();
 
-initWatcher('./router'); // watch this file
+watch(require.resolve('./router')); // watch this file
 app.use('/', (req, res, next) => require('./router')(req, res, next)); // force reloading
 
 app.listen(8080);

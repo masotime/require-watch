@@ -1,27 +1,40 @@
 import Module from 'module';
 import chokidar from 'chokidar';
-import { isAbsolute, join } from 'path';
+import { isAbsolute } from 'path';
+import { createNode, isAppModule } from 'lib';
 import { debuglog } from 'util';
 
-const NATIVE_MATCH = /^[^\.\/]/;
-const NODE_MODULE_MATCH = new RegExp(`^${join(process.cwd(), 'node_modules')}`);
 const log = debuglog('require-watch');
 
 const watchTree = {};
-const commonWatcher = chokidar.watch();
+let commonWatcher;
 
-function createNode(path) {
-	return {
-		path,
-		parents: []
-	};
-}
+function initialize() {
+	commonWatcher = chokidar.watch();
 
-function isAppModule(path) {
-	return !(NATIVE_MATCH.test(path) || NODE_MODULE_MATCH.test(path));
+	// configure the watcher behavior. For any dependency that changes, we invalidate
+	// the cache for that dependency. We _also_ remove the key from the watchTree,
+	// since on the next require, that node will be added again with the latest
+	// information.
+	//
+	// We could also require the topmost node we know of manually, but modules may
+	// have side effects when required that we don't want to trigger.
+	commonWatcher.on('change', path => {
+		log(`A change was detected on module ${path}`);
+
+		if (!watchTree.hasOwnProperty(path)) {
+			throw new Error(`Unexpected - watching ${path} that does not exist in watchTree`);
+		}
+
+		cascadeUncache(watchTree[path]);
+	});
 }
 
 function watchModule(path) {
+	if (!commonWatcher) {
+		initialize();
+	}
+
 	if (watchTree.hasOwnProperty(path)) {
 		return watchTree[path];
 	}
@@ -32,14 +45,14 @@ function watchModule(path) {
 	return watchTree[path];
 }
 
-function initWatcher(path) {
+function watch(path) {
 	if (path) { // if there is a path, we just watch that path
-		if (!isAbsolute(path)) {
-			throw new Error(`The watcher only works on absolute paths - ${path} is not absolute`);
-		}
-
 		if (!isAppModule(path)) {
 			throw new Error(`The watcher cannot watch Native modules or files in node_modules`);
+		}
+
+		if (!isAbsolute(path)) {
+			throw new Error(`The watcher only works on absolute paths - ${path} is not absolute`);
 		}
 
 		watchModule(path);
@@ -82,22 +95,19 @@ function cascadeUncache({ parents, path }) {
 
 }
 
-// configure the watcher behavior. For any dependency that changes, we invalidate
-// the cache for that dependency. We _also_ remove the key from the watchTree,
-// since on the next require, that node will be added again with the latest
-// information.
-//
-// We could also require the topmost node we know of manually, but modules may
-// have side effects when required that we don't want to trigger.
-commonWatcher.on('change', path => {
-	log(`A change was detected on module ${path}`);
+function stopWatching() {
+	if (commonWatcher) {
+		Object.keys(watchTree).forEach(key => {
+			const { path } = watchTree[key];
+			log(`Unwatching ${path}`);
+			commonWatcher.unwatch(path);
+			delete watchTree[key]
+		});
 
-	if (!watchTree.hasOwnProperty(path)) {
-		throw new Error(`Unexpected - watching ${path} that does not exist in watchTree`);
+		commonWatcher.close();
+		commonWatcher = null;
 	}
-
-	cascadeUncache(watchTree[path]);
-});
+}
 
 const original_load = Module._load;
 const intercepted_load = (request, parent, isMain) => {
@@ -126,4 +136,5 @@ if (Module._load.toString() !== intercepted_load.toString()) {
 	Module._load = intercepted_load;
 }
 
-export default initWatcher;
+export default watch;
+export { stopWatching };
