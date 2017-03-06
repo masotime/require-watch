@@ -1,6 +1,6 @@
 {
   "name": "require-watch",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "description": "Automatically refresh require dependencies in NodeJS",
   "main": "dist/index.js",
   "scripts": {
