@@ -49,6 +49,7 @@ test('watch one file', async t => {
 	await fs.unlinkAsync(filePath);
 	stopWatching();
 
+	await sleep(1000);
 	t.end();
 });
 
@@ -118,5 +119,7 @@ test('cannot watch everything after watching something', async (t) => {
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
+
+	await sleep(1000);
 	t.end();
 })
