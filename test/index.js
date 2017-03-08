@@ -6,6 +6,18 @@ import { generate } from 'shortid';
 
 Promise.promisifyAll(fs);
 
+const semaphore = (function() {
+	let internal = 0;
+
+	function up() { internal += 1; }
+	function down() { internal -= 1; if (internal === 0) process.exit(0); }
+
+	return {
+		up, down
+	};
+
+}())
+
 const randomModule = () => {
 	const id = generate();
 	const result1 = generate();
@@ -27,6 +39,7 @@ const createAndWait = async (path, data) => {
 }
 
 test('watch one file', async t => {
+	semaphore.up();
 	t.plan(2);
 
 	const {
@@ -51,9 +64,11 @@ test('watch one file', async t => {
 
 	await sleep(1000);
 	t.end();
+	semaphore.down();
 });
 
 test('watch everything', async t => {
+	semaphore.up();
 	t.plan(4);
 
 	const module1 = randomModule();
@@ -83,9 +98,11 @@ test('watch everything', async t => {
 
 	await sleep(1000);
 	t.end();
+	semaphore.down();
 });
 
 test('fail on non-absolute paths', t => {
+	semaphore.up();
 	t.plan(1);
 
 	const { reqPath } = randomModule();
@@ -96,9 +113,11 @@ test('fail on non-absolute paths', t => {
 	);
 
 	t.end();
+	semaphore.down();
 });
 
 test('fail on native modules', t => {
+	semaphore.up();
 	t.plan(1);
 	t.throws(
 		() => watch('util'),
@@ -106,9 +125,11 @@ test('fail on native modules', t => {
 	);
 
 	t.end();
+	semaphore.down();
 });
 
 test('cannot watch everything after watching something', async (t) => {
+	semaphore.up();
 	t.plan(1);
 
 	const { filePath, reqPath, code1 } = randomModule();
@@ -122,4 +143,6 @@ test('cannot watch everything after watching something', async (t) => {
 
 	await sleep(1000);
 	t.end();
-})
+	semaphore.down();
+});
+
