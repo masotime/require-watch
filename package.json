@@ -36,7 +36,7 @@
     "eslint": "^3",
     "eslint-import-resolver-babel-module": "^2",
     "eslint-plugin-import": "^2",
-    "nyc": "^13.1.0",
+    "nyc": "^13.3.0",
     "shortid": "^2.2.8",
     "tap-spec": "^5.0.0",
     "tape": "^4.6.3"
