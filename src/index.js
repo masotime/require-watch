@@ -66,7 +66,7 @@ function watch(path) {
 			.filter(isAppModule)
 			.forEach(watchModule);
 	} else {
-		throw new Error(`You're currently watching some files. You can only watch more files.`);
+		throw new Error(`You're currently watching some files ${JSON.stringify(watchTree)}. You can only watch more files.`);
 	}
 }
 
@@ -97,6 +97,7 @@ function cascadeUncache({ parents, path }) {
 
 function stopWatching() {
 	if (commonWatcher) {
+		log(`#stopWatching: watchTree has the keys ${JSON.stringify(Object.keys(watchTree))}`)
 		Object.keys(watchTree).forEach(key => {
 			const { path } = watchTree[key];
 			log(`Unwatching ${path}`);
@@ -106,6 +107,8 @@ function stopWatching() {
 
 		commonWatcher.close();
 		commonWatcher = null;
+	} else {
+		log(`stopWatching() called without a commonWatcher defined (${commonWatcher})`);
 	}
 }
 

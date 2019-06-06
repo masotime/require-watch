@@ -6,18 +6,6 @@ import { generate } from 'shortid';
 
 Promise.promisifyAll(fs);
 
-const semaphore = (function() {
-	let internal = 0;
-
-	function up() { internal += 1; }
-	function down() { internal -= 1; if (internal === 0) process.exit(0); }
-
-	return {
-		up, down
-	};
-
-}())
-
 const randomModule = () => {
 	const id = generate();
 	const result1 = generate();
@@ -39,9 +27,6 @@ const createAndWait = async (path, data) => {
 }
 
 test('watch one file', async t => {
-	semaphore.up();
-	t.plan(2);
-
 	const {
 		filePath, reqPath,
 		result1, result2,
@@ -52,25 +37,19 @@ test('watch one file', async t => {
 
 	watch(require.resolve(reqPath));
 	const before = require(reqPath)();
-	t.equal(before, result1);
+	t.equal(before, result1, 'Correctly loaded initial code');
 
 	await createAndWait(filePath, code2);
 
 	const after = require(reqPath)();
-	t.equal(after, result2);
+	t.equal(after, result2, 'Correctly loaded new code');
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
-
-	await sleep(1000);
 	t.end();
-	semaphore.down();
 });
 
 test('watch everything', async t => {
-	semaphore.up();
-	t.plan(4);
-
 	const module1 = randomModule();
 	const module2 = randomModule();
 
@@ -81,68 +60,58 @@ test('watch everything', async t => {
 
 	const before1 = require(module1.reqPath)();
 	const before2 = require(module2.reqPath)();
-	t.equal(before1, module1.result1);
-	t.equal(before2, module2.result1);
+	t.equal(before1, module1.result1, 'Correctly loaded module1');
+	t.equal(before2, module2.result1, 'Correctly loaded module2');
 
 	await createAndWait(module1.filePath, module1.code2);
 	await createAndWait(module2.filePath, module2.code2);
 
 	const after1 = require(module1.reqPath)();
 	const after2 = require(module2.reqPath)();
-	t.equal(after1, module1.result2);
-	t.equal(after2, module2.result2);
+	t.equal(after1, module1.result2, 'Correctly loaded updated module1');
+	t.equal(after2, module2.result2, 'Correctly loaded updated module2');
 
 	await fs.unlinkAsync(module1.filePath);
 	await fs.unlinkAsync(module2.filePath);
 	stopWatching();
-
-	await sleep(1000);
 	t.end();
-	semaphore.down();
 });
 
 test('fail on non-absolute paths', t => {
-	semaphore.up();
-	t.plan(1);
-
 	const { reqPath } = randomModule();
 
 	t.throws(
 		() => watch(reqPath),
-		/The watcher only works on absolute paths/
+		/The watcher only works on absolute paths/,
+		'Correctly complained that the watcher requires an absolute path to work'
 	);
 
 	t.end();
-	semaphore.down();
 });
 
 test('fail on native modules', t => {
-	semaphore.up();
-	t.plan(1);
 	t.throws(
 		() => watch('util'),
-		/The watcher cannot watch Native modules or files in node_modules/
+		/The watcher cannot watch Native modules or files in node_modules/,
+		'Correctly complained that the watcher cannot watch native modules or modules in node_modules folder'
 	);
 
 	t.end();
-	semaphore.down();
 });
 
 test('cannot watch everything after watching something', async (t) => {
-	semaphore.up();
-	t.plan(1);
-
 	const { filePath, reqPath, code1 } = randomModule();
 	await createAndWait(filePath, code1);
 	watch(require.resolve(reqPath));
 
-	t.throws(watch, /You're currently watching some files. You can only watch more files./);
+	t.throws(
+		watch,
+		/You can only watch more files./,
+		'Correctly complained that the watcher cannot watch everything if you are watching something specific already.'
+	);
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
-
-	await sleep(1000);
 	t.end();
-	semaphore.down();
 });
 

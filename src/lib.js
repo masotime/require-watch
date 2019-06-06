@@ -1,6 +1,6 @@
 import { join } from 'path';
 
-const NATIVE_MATCH = /^[^\.\/]/;
+const NATIVE_MATCH = /^[^\\.\\/]/;
 const NODE_MODULE_MATCH = new RegExp(`^${join(process.cwd(), 'node_modules')}`);
 
 export function createNode(path) {
