@@ -1,24 +1,10 @@
-import test from 'tape';
+import test from 'blue-tape';
 import Promise from 'bluebird';
 import fs from 'fs';
 import watch, { stopWatching } from 'index';
 import { generate } from 'shortid';
 
 Promise.promisifyAll(fs);
-
-// why do we need this? for some irritating reason tests might
-// hang forever if I don't track if all of them are complete and exit manually
-const semaphore = (function() {
-	let internal = 0;
-
-	function up() { internal += 1; }
-	function down() { internal -= 1; if (internal === 0) process.exit(0); }
-
-	return {
-		up, down
-	};
-
-}());
 
 const randomModule = () => {
 	const id = generate();
@@ -41,7 +27,6 @@ const createAndWait = async (path, data) => {
 }
 
 test('watch one file', async t => {
-	semaphore.up();
 	const {
 		filePath, reqPath,
 		result1, result2,
@@ -61,12 +46,9 @@ test('watch one file', async t => {
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
-	t.end();
-	semaphore.down();
 });
 
 test('watch everything', async t => {
-	semaphore.up();
 	const module1 = randomModule();
 	const module2 = randomModule();
 
@@ -91,12 +73,9 @@ test('watch everything', async t => {
 	await fs.unlinkAsync(module1.filePath);
 	await fs.unlinkAsync(module2.filePath);
 	stopWatching();
-	t.end();
-	semaphore.down();
 });
 
-test('fail on non-absolute paths', t => {
-	semaphore.up();
+test('fail on non-absolute paths', async t => {
 	const { reqPath } = randomModule();
 
 	t.throws(
@@ -104,25 +83,17 @@ test('fail on non-absolute paths', t => {
 		/The watcher only works on absolute paths/,
 		'Correctly complained that the watcher requires an absolute path to work'
 	);
-
-	t.end();
-	semaphore.down();
 });
 
-test('fail on native modules', t => {
-	semaphore.up();
+test('fail on native modules', async t => {
 	t.throws(
 		() => watch('util'),
 		/The watcher cannot watch Native modules or files in node_modules/,
 		'Correctly complained that the watcher cannot watch native modules or modules in node_modules folder'
 	);
-
-	t.end();
-	semaphore.down();
 });
 
-test('cannot watch everything after watching something', async (t) => {
-	semaphore.up();
+test('cannot watch everything after watching something', async t => {
 	const { filePath, reqPath, code1 } = randomModule();
 	await createAndWait(filePath, code1);
 	watch(require.resolve(reqPath));
@@ -135,7 +106,4 @@ test('cannot watch everything after watching something', async (t) => {
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
-	t.end();
-	semaphore.down();
 });
-
