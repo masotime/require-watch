@@ -6,6 +6,20 @@ import { generate } from 'shortid';
 
 Promise.promisifyAll(fs);
 
+// why do we need this? for some irritating reason tests might
+// hang forever if I don't track if all of them are complete and exit manually
+const semaphore = (function() {
+	let internal = 0;
+
+	function up() { internal += 1; }
+	function down() { internal -= 1; if (internal === 0) process.exit(0); }
+
+	return {
+		up, down
+	};
+
+}());
+
 const randomModule = () => {
 	const id = generate();
 	const result1 = generate();
@@ -27,6 +41,7 @@ const createAndWait = async (path, data) => {
 }
 
 test('watch one file', async t => {
+	semaphore.up();
 	const {
 		filePath, reqPath,
 		result1, result2,
@@ -47,9 +62,11 @@ test('watch one file', async t => {
 	await fs.unlinkAsync(filePath);
 	stopWatching();
 	t.end();
+	semaphore.down();
 });
 
 test('watch everything', async t => {
+	semaphore.up();
 	const module1 = randomModule();
 	const module2 = randomModule();
 
@@ -75,9 +92,11 @@ test('watch everything', async t => {
 	await fs.unlinkAsync(module2.filePath);
 	stopWatching();
 	t.end();
+	semaphore.down();
 });
 
 test('fail on non-absolute paths', t => {
+	semaphore.up();
 	const { reqPath } = randomModule();
 
 	t.throws(
@@ -87,9 +106,11 @@ test('fail on non-absolute paths', t => {
 	);
 
 	t.end();
+	semaphore.down();
 });
 
 test('fail on native modules', t => {
+	semaphore.up();
 	t.throws(
 		() => watch('util'),
 		/The watcher cannot watch Native modules or files in node_modules/,
@@ -97,9 +118,11 @@ test('fail on native modules', t => {
 	);
 
 	t.end();
+	semaphore.down();
 });
 
 test('cannot watch everything after watching something', async (t) => {
+	semaphore.up();
 	const { filePath, reqPath, code1 } = randomModule();
 	await createAndWait(filePath, code1);
 	watch(require.resolve(reqPath));
@@ -113,5 +136,6 @@ test('cannot watch everything after watching something', async (t) => {
 	await fs.unlinkAsync(filePath);
 	stopWatching();
 	t.end();
+	semaphore.down();
 });
 
