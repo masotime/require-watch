@@ -1,4 +1,4 @@
-import test from 'blue-tape';
+import test from 'tape';
 import Promise from 'bluebird';
 import fs from 'fs';
 import watch, { stopWatching } from 'index';
@@ -26,7 +26,39 @@ const createAndWait = async (path, data) => {
 	await sleep(1000);
 }
 
-test('watch one file', async t => {
+// we need this because Travis CI enjoys hanging on async tape tests
+const testChainFactory = () => {
+	let counter = 0;
+
+	const log = () => console.log(`Counter at ${counter}`);
+	const inc = () => (counter += 1) && log();
+	const dec = () => (counter -= 1) && log();
+
+	// at the end of each test added,
+	// check for remaining tests and exit if necessary
+	function checkCounter() {
+		dec();
+		if (counter <= 0) {
+			log();
+			process.exit(0);
+		}
+	}
+
+	function track(testFn) {
+		inc();
+		return async t =>
+			testFn(t)
+				.then(() => sleep(1000))
+				.then(() => t.end())
+				.then(checkCounter);
+	}
+
+	return track;
+}
+
+const track = testChainFactory();
+
+test('watch one file', track(async t => {
 	const {
 		filePath, reqPath,
 		result1, result2,
@@ -46,9 +78,9 @@ test('watch one file', async t => {
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
-});
+}));
 
-test('watch everything', async t => {
+test('watch everything', track(async t => {
 	const module1 = randomModule();
 	const module2 = randomModule();
 
@@ -73,9 +105,9 @@ test('watch everything', async t => {
 	await fs.unlinkAsync(module1.filePath);
 	await fs.unlinkAsync(module2.filePath);
 	stopWatching();
-});
+}));
 
-test('fail on non-absolute paths', async t => {
+test('fail on non-absolute paths', track(async t => {
 	const { reqPath } = randomModule();
 
 	t.throws(
@@ -83,17 +115,17 @@ test('fail on non-absolute paths', async t => {
 		/The watcher only works on absolute paths/,
 		'Correctly complained that the watcher requires an absolute path to work'
 	);
-});
+}));
 
-test('fail on native modules', async t => {
+test('fail on native modules', track(async t => {
 	t.throws(
 		() => watch('util'),
 		/The watcher cannot watch Native modules or files in node_modules/,
 		'Correctly complained that the watcher cannot watch native modules or modules in node_modules folder'
 	);
-});
+}));
 
-test('cannot watch everything after watching something', async t => {
+test('cannot watch everything after watching something', track(async t => {
 	const { filePath, reqPath, code1 } = randomModule();
 	await createAndWait(filePath, code1);
 	watch(require.resolve(reqPath));
@@ -106,4 +138,4 @@ test('cannot watch everything after watching something', async t => {
 
 	await fs.unlinkAsync(filePath);
 	stopWatching();
-});
+}));
